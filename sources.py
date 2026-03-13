@@ -59,13 +59,15 @@ def extract_links(url):
     return jobs
 
 
-
 def scan_law_firms():
 
     jobs = []
 
     for site in LAW_FIRM_SITES:
-        jobs.extend(extract_links(site))
+
+        links = extract_links(site)
+
+        jobs.extend(links)
 
     return jobs
 
