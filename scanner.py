@@ -18,12 +18,10 @@ def load_seen():
     return set()
 
 
-
 def save_seen(seen):
 
-    with open(SEEN_FILE,"w") as f:
-        json.dump(list(seen),f)
-
+    with open(SEEN_FILE, "w") as f:
+        json.dump(list(seen), f)
 
 
 def main():
@@ -32,12 +30,15 @@ def main():
 
     jobs = []
 
+    # scan advokatfirmaer
     jobs.extend(scan_law_firms())
+
+    # google discovery
     jobs.extend(google_discovery())
 
     new_jobs = []
 
-    for title,link in jobs:
+    for title, link in jobs:
 
         if not is_relevant(title):
             continue
@@ -49,24 +50,13 @@ def main():
 
         seen.add(key)
 
-        new_jobs.append((title,link))
-
+        new_jobs.append((title, link))
 
     if new_jobs:
 
-        body = "\n\n".join(
-            f"{t}\n{l}" for t,l in new_jobs
-        )
-
         send_email(new_jobs)
-        
-def save_seen(seen):
-
-    with open(SEEN_FILE,"w") as f:
-        json.dump(list(seen),f)
 
     save_seen(seen)
-
 
 
 if __name__ == "__main__":
