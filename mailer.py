@@ -5,28 +5,35 @@ from email.mime.text import MIMEText
 from datetime import datetime
 
 
-# Logoer for nogle firmaer
-LOGOS = {
-    "kromann": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Kromann_Reumert_logo.png/320px-Kromann_Reumert_logo.png",
-    "bech": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Bech-Bruun_logo.png/320px-Bech-Bruun_logo.png",
-    "poul": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Poul_Schmith_logo.png/320px-Poul_Schmith_logo.png",
-}
+def extract_company(title, link):
+
+    domain = link.split("/")[2]
+
+    company = domain.replace("www.", "").split(".")[0]
+
+    company = company.replace("-", " ").title()
+
+    return company
 
 
-def detect_logo(title):
+def clean_title(title):
 
-    t = title.lower()
+    # fjern lange beskrivelser
+    if "?" in title:
+        title = title.split("?")[0]
 
-    if "kromann" in t:
-        return LOGOS["kromann"]
+    if "." in title:
+        title = title.split(".")[0]
 
-    if "bech" in t:
-        return LOGOS["bech"]
+    if "Read more" in title:
+        title = title.split("Read more")[0]
 
-    if "poul" in t:
-        return LOGOS["poul"]
+    title = title.strip()
 
-    return ""
+    # forkort typiske formuleringer
+    title = title.replace("Juridisk student og erhvervsjuridisk student", "Stud.jur")
+
+    return title
 
 
 def send_email(jobs):
@@ -41,36 +48,43 @@ def send_email(jobs):
     msg["From"] = sender
     msg["To"] = receiver
 
-    cards = ""
+    rows = ""
 
     for title, link in jobs:
 
-        logo = detect_logo(title)
+        company = extract_company(title, link)
+        title = clean_title(title)
 
-        logo_html = ""
-        if logo:
-            logo_html = f'<img src="{logo}" style="height:40px;margin-bottom:10px"><br>'
-
-        cards += f"""
+        rows += f"""
         <tr>
-        <td style="padding:20px;border:1px solid #eee;border-radius:8px;background:#fafafa">
-        {logo_html}
-        <strong style="font-size:16px">{title}</strong><br><br>
+        <td style="padding:18px;border:1px solid #e6e6e6;border-radius:8px;background:#fafafa">
 
-        <a href="{link}" 
-        style="background:#1a73e8;color:white;padding:10px 18px;
-        text-decoration:none;border-radius:6px;font-weight:bold">
+        <div style="font-size:13px;color:#666">
+        {company}
+        </div>
+
+        <div style="font-size:16px;font-weight:bold;margin-top:3px">
+        {title}
+        </div>
+
+        <div style="margin-top:12px">
+        <a href="{link}"
+        style="background:#1a73e8;color:white;padding:8px 16px;
+        text-decoration:none;border-radius:6px;font-weight:bold;font-size:13px">
 
         Se stilling
 
         </a>
+        </div>
+
         </td>
         </tr>
         """
 
     html = f"""
     <html>
-    <body style="font-family:Arial,Helvetica,sans-serif;background:#f4f6f9;padding:30px">
+
+    <body style="font-family:Arial;background:#f4f6f9;padding:30px">
 
     <table width="600" align="center"
     style="background:white;padding:30px;border-radius:10px">
@@ -86,7 +100,7 @@ def send_email(jobs):
 
     <table width="100%" style="border-collapse:separate;border-spacing:0 15px">
 
-    {cards}
+    {rows}
 
     </table>
 
@@ -106,8 +120,7 @@ def send_email(jobs):
     </html>
     """
 
-    part = MIMEText(html, "html")
-    msg.attach(part)
+    msg.attach(MIMEText(html, "html"))
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
 
