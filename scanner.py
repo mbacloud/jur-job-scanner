@@ -59,7 +59,11 @@ def main():
         )
 
         send_email(body)
+        
+def save_seen(seen):
 
+    with open(SEEN_FILE,"w") as f:
+        json.dump(list(seen),f)
 
     save_seen(seen)
 
