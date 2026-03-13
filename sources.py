@@ -25,9 +25,8 @@ SEARCH_QUERIES = [
 "legal student assistant denmark"
 ]
 
-
 HEADERS = {
-"User-Agent":"Mozilla/5.0"
+"User-Agent": "Mozilla/5.0"
 }
 
 
@@ -36,9 +35,8 @@ def extract_links(url):
     jobs = []
 
     try:
-
-        html = requests.get(url,headers=HEADERS,timeout=20).text
-        soup = BeautifulSoup(html,"html.parser")
+        html = requests.get(url, headers=HEADERS, timeout=20).text
+        soup = BeautifulSoup(html, "html.parser")
 
         for link in soup.find_all("a"):
 
@@ -51,10 +49,10 @@ def extract_links(url):
             if href.startswith("/"):
                 href = url.rstrip("/") + href
 
-            jobs.append((title,href))
+            jobs.append((title, href))
 
     except Exception as e:
-        print("Error scanning",url,e)
+        print("Error scanning", url, e)
 
     return jobs
 
@@ -64,13 +62,33 @@ def scan_law_firms():
     jobs = []
 
     for site in LAW_FIRM_SITES:
-
         links = extract_links(site)
-
         jobs.extend(links)
 
     return jobs
 
+
+def fetch_job_title(link):
+
+    try:
+
+        html = requests.get(link, headers=HEADERS, timeout=10).text
+        soup = BeautifulSoup(html, "html.parser")
+
+        h1 = soup.find("h1")
+
+        if h1:
+            title = h1.get_text().strip()
+            if len(title) > 3:
+                return title
+
+        if soup.title:
+            return soup.title.string.strip()
+
+    except:
+        pass
+
+    return None
 
 
 def google_discovery():
@@ -81,48 +99,31 @@ def google_discovery():
 
         url = f"https://www.google.com/search?q={query}"
 
-        html = requests.get(url,headers=HEADERS).text
-        soup = BeautifulSoup(html,"html.parser")
+        try:
 
-        for link in soup.select("a"):
+            html = requests.get(url, headers=HEADERS).text
+            soup = BeautifulSoup(html, "html.parser")
 
-            href = link.get("href")
+            for link in soup.select("a"):
 
-            if href and "/url?q=" in href:
+                href = link.get("href")
 
-                real = href.split("/url?q=")[1].split("&")[0]
-                title = link.text.strip()
+                if href and "/url?q=" in href:
 
-                if title:
-                    real_title = fetch_job_title(href)
+                    real = href.split("/url?q=")[1].split("&")[0]
+                    title = link.text.strip()
 
-if real_title:
-    jobs.append((real_title, href))
-else:
-    jobs.append((title, href))
+                    if not title:
+                        continue
+
+                    real_title = fetch_job_title(real)
+
+                    if real_title:
+                        jobs.append((real_title, real))
+                    else:
+                        jobs.append((title, real))
+
+        except Exception as e:
+            print("Google search error:", e)
 
     return jobs
-
-def fetch_job_title(link):
-
-    try:
-
-        html = requests.get(link, timeout=10).text
-        soup = BeautifulSoup(html, "html.parser")
-
-        # første forsøg: H1
-        h1 = soup.find("h1")
-
-        if h1:
-            title = h1.get_text().strip()
-            if len(title) > 3:
-                return title
-
-        # fallback: page title
-        title = soup.title.string.strip()
-
-        return title
-
-    except:
-
-        return None
