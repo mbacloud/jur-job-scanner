@@ -92,6 +92,35 @@ def google_discovery():
                 title = link.text.strip()
 
                 if title:
-                    jobs.append((title,real))
+                    real_title = fetch_job_title(href)
+
+if real_title:
+    jobs.append((real_title, href))
+else:
+    jobs.append((title, href))
 
     return jobs
+
+def fetch_job_title(link):
+
+    try:
+
+        html = requests.get(link, timeout=10).text
+        soup = BeautifulSoup(html, "html.parser")
+
+        # første forsøg: H1
+        h1 = soup.find("h1")
+
+        if h1:
+            title = h1.get_text().strip()
+            if len(title) > 3:
+                return title
+
+        # fallback: page title
+        title = soup.title.string.strip()
+
+        return title
+
+    except:
+
+        return None
