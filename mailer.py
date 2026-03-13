@@ -3,24 +3,33 @@ import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
+from urllib.parse import urlparse
 
 
-# FUNKTION 1
 def extract_company(title, link):
 
     try:
-        if link.startswith("http"):
-            domain = link.split("/")[2]
-            company = domain.replace("www.", "").split(".")[0]
-            company = company.replace("-", " ").title()
-            return company
+        domain = urlparse(link).netloc
+
+        company = domain.replace("www.", "").split(".")[0]
+
+        return company.replace("-", " ").title()
+
     except:
-        pass
-
-    return "Ukendt virksomhed"
+        return "Ukendt virksomhed"
 
 
-# FUNKTION 2
+def logo_url(link):
+
+    try:
+        domain = urlparse(link).netloc
+
+        return f"https://logo.clearbit.com/{domain}"
+
+    except:
+        return ""
+
+
 def clean_title(title):
 
     if "?" in title:
@@ -31,8 +40,44 @@ def clean_title(title):
 
     return title.strip()
 
+def clean_title(title):
 
-# FUNKTION 3
+    title = title.lower()
+
+    # standard jobtitler
+    if "stud.jur" in title:
+        return "Stud.jur"
+
+    if "studentermedhjælper" in title:
+        return "Studentermedhjælper"
+
+    if "juridisk student" in title:
+        return "Stud.jur"
+
+    if "legal student" in title:
+        return "Stud.jur"
+
+    # fjern marketing-tekst
+    remove_words = [
+        "are you a student",
+        "club",
+        "offers students",
+        "unique opportunities",
+        "read more",
+        "click here"
+    ]
+
+    for word in remove_words:
+        title = title.replace(word, "")
+
+    title = title.strip()
+
+    # hvis titlen stadig er lang → klip den
+    if len(title) > 60:
+        title = title[:60] + "..."
+
+    return title.title()
+
 def send_email(jobs):
 
     sender = os.getenv("EMAIL_FROM")
@@ -45,67 +90,121 @@ def send_email(jobs):
     msg["From"] = sender
     msg["To"] = receiver
 
-    rows = ""
+    cards = ""
 
     for title, link in jobs:
 
         company = extract_company(title, link)
         title = clean_title(title)
 
-        rows += f"""
+        logo = logo_url(link)
+
+        cards += f"""
+
         <tr>
-        <td style="padding:18px;border:1px solid #e6e6e6;border-radius:8px;background:#fafafa">
+        <td style="padding:20px 0">
+
+        <table width="100%" style="
+        background:white;
+        border-radius:10px;
+        border:1px solid #e8e8e8;
+        padding:20px">
+
+        <tr>
+
+        <td width="60">
+
+        <img src="{logo}" 
+        style="height:40px;width:40px;border-radius:6px">
+
+        </td>
+
+        <td>
 
         <div style="font-size:13px;color:#666">
         {company}
         </div>
 
-        <div style="font-size:16px;font-weight:bold;margin-top:3px">
+        <div style="font-size:17px;font-weight:bold">
         {title}
         </div>
 
         <div style="margin-top:12px">
-        <a href="{link}"
-        style="background:#1a73e8;color:white;padding:8px 16px;
-        text-decoration:none;border-radius:6px;font-weight:bold;font-size:13px">
+
+        <a href="{link}" style="
+        background:#1a73e8;
+        color:white;
+        padding:9px 16px;
+        text-decoration:none;
+        border-radius:6px;
+        font-weight:bold;
+        font-size:13px">
 
         Se stilling
 
         </a>
+
         </div>
 
         </td>
+
         </tr>
+
+        </table>
+
+        </td>
+        </tr>
+
         """
 
     html = f"""
-    <html>
-    <body style="font-family:Arial;background:#f4f6f9;padding:30px">
 
-    <table width="600" align="center"
-    style="background:white;padding:30px;border-radius:10px">
+    <html>
+
+    <body style="
+    font-family:Arial,Helvetica,sans-serif;
+    background:#f4f6f9;
+    padding:40px">
+
+    <table width="600" align="center" style="background:#f4f6f9">
+
+    <!-- HERO -->
 
     <tr>
-    <td>
+    <td style="
+    background:white;
+    padding:30px;
+    border-radius:10px;
+    text-align:center">
 
-    <h2>⚖️ Juridiske studenterjobs fundet</h2>
+    <h1 style="margin:0">
+    ⚖️ Stud.jur Job Scanner
+    </h1>
 
-    <p style="color:#555">
-    Nye relevante studenterstillinger inden for jura.
+    <p style="color:#666;margin-top:10px">
+
+    Nye juridiske studenterjobs er fundet
+
     </p>
 
-    <table width="100%" style="border-collapse:separate;border-spacing:0 15px">
+    </td>
+    </tr>
 
-    {rows}
+    <!-- JOB CARDS -->
 
-    </table>
+    {cards}
 
-    <p style="font-size:12px;color:#999;margin-top:30px">
+    <!-- FOOTER -->
+
+    <tr>
+    <td style="
+    text-align:center;
+    font-size:12px;
+    color:#999;
+    padding-top:20px">
 
     Automatisk jobscan<br>
     {datetime.now().strftime("%d %B %Y")}
-
-    </p>
 
     </td>
     </tr>
@@ -114,6 +213,7 @@ def send_email(jobs):
 
     </body>
     </html>
+
     """
 
     msg.attach(MIMEText(html, "html"))
