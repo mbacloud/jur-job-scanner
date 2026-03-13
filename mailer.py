@@ -5,26 +5,34 @@ from email.mime.text import MIMEText
 from datetime import datetime
 
 
+# FUNKTION 1
+def extract_company(title, link):
+
+    try:
+        if link.startswith("http"):
+            domain = link.split("/")[2]
+            company = domain.replace("www.", "").split(".")[0]
+            company = company.replace("-", " ").title()
+            return company
+    except:
+        pass
+
+    return "Ukendt virksomhed"
+
+
+# FUNKTION 2
 def clean_title(title):
 
-    # fjern lange beskrivelser
     if "?" in title:
         title = title.split("?")[0]
-
-    if "." in title:
-        title = title.split(".")[0]
 
     if "Read more" in title:
         title = title.split("Read more")[0]
 
-    title = title.strip()
-
-    # forkort typiske formuleringer
-    title = title.replace("Juridisk student og erhvervsjuridisk student", "Stud.jur")
-
-    return title
+    return title.strip()
 
 
+# FUNKTION 3
 def send_email(jobs):
 
     sender = os.getenv("EMAIL_FROM")
@@ -72,7 +80,6 @@ def send_email(jobs):
 
     html = f"""
     <html>
-
     <body style="font-family:Arial;background:#f4f6f9;padding:30px">
 
     <table width="600" align="center"
