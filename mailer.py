@@ -5,17 +5,6 @@ from email.mime.text import MIMEText
 from datetime import datetime
 
 
-def extract_company(title, link):
-
-    domain = link.split("/")[2]
-
-    company = domain.replace("www.", "").split(".")[0]
-
-    company = company.replace("-", " ").title()
-
-    return company
-
-
 def clean_title(title):
 
     # fjern lange beskrivelser
