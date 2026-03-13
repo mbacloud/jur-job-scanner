@@ -58,7 +58,7 @@ def main():
             f"{t}\n{l}" for t,l in new_jobs
         )
 
-        send_email(body)
+        send_email(new_jobs)
         
 def save_seen(seen):
 
