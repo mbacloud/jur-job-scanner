@@ -3,80 +3,77 @@ import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
-from urllib.parse import urlparse
 
 
-def extract_company(title, link):
+LOGO_MAP = {
+"bruunhjejle": "https://bruunhjejle.dk/media/1496/logo.svg",
+"kromannreumert": "https://kromannreumert.com/-/media/images/global/logo.svg",
+"bechbruun": "https://www.bechbruun.com/-/media/images/logo.svg",
+"poulschmith": "https://jobs.poulschmith.dk/-/media/poul-schmith-logo.svg",
+"accura": "https://accura.dk/wp-content/themes/accura/assets/logo.svg",
+"njord": "https://www.njordlaw.com/-/media/images/logo.svg",
+"schjodt": "https://schjodt.com/-/media/images/logo.svg"
+}
 
-    try:
-        domain = urlparse(link).netloc
 
-        company = domain.replace("www.", "").split(".")[0]
+def extract_company(link):
 
-        return company.replace("-", " ").title()
+    domain = link.split("/")[2].replace("www.","")
 
-    except:
-        return "Ukendt virksomhed"
+    return domain.split(".")[0].replace("-", " ").title()
 
 
 def logo_url(link):
 
-    try:
-        domain = urlparse(link).netloc
+    domain = link.split("/")[2].replace("www.","")
+    key = domain.split(".")[0]
 
-        return f"https://logo.clearbit.com/{domain}"
+    if key in LOGO_MAP:
+        return LOGO_MAP[key]
 
-    except:
-        return ""
+    return f"https://logo.clearbit.com/{domain}"
 
-
-def clean_title(title):
-
-    if "?" in title:
-        title = title.split("?")[0]
-
-    if "Read more" in title:
-        title = title.split("Read more")[0]
-
-    return title.strip()
 
 def clean_title(title):
-
-    title = title.lower()
-
-    # standard jobtitler
-    if "stud.jur" in title:
-        return "Stud.jur"
-
-    if "studentermedhjælper" in title:
-        return "Studentermedhjælper"
-
-    if "juridisk student" in title:
-        return "Stud.jur"
-
-    if "legal student" in title:
-        return "Stud.jur"
-
-    # fjern marketing-tekst
-    remove_words = [
-        "are you a student",
-        "club",
-        "offers students",
-        "unique opportunities",
-        "read more",
-        "click here"
-    ]
-
-    for word in remove_words:
-        title = title.replace(word, "")
 
     title = title.strip()
 
-    # hvis titlen stadig er lang → klip den
-    if len(title) > 60:
-        title = title[:60] + "..."
+    remove = [
+        "are you a student",
+        "club",
+        "read more",
+        "click here",
+        "offers students",
+        "unique opportunities"
+    ]
 
-    return title.title()
+    lower = title.lower()
+
+    for word in remove:
+        lower = lower.replace(word,"")
+
+    title = lower.strip().title()
+
+    departments = [
+        "M&A",
+        "Corporate",
+        "Competition",
+        "Banking",
+        "Dispute",
+        "Tax",
+        "IP",
+        "Employment"
+    ]
+
+    for dept in departments:
+        if dept.lower() in title.lower():
+            return f"Stud.jur – {dept}"
+
+    if "stud" in title.lower():
+        return "Stud.jur"
+
+    return title
+
 
 def send_email(jobs):
 
@@ -86,7 +83,7 @@ def send_email(jobs):
 
     msg = MIMEMultipart("alternative")
 
-    msg["Subject"] = "⚖️ Nye stud.jur jobopslag"
+    msg["Subject"] = "⚖️ Nye Stud.jur jobopslag"
     msg["From"] = sender
     msg["To"] = receiver
 
@@ -94,13 +91,11 @@ def send_email(jobs):
 
     for title, link in jobs:
 
-        company = extract_company(title, link)
+        company = extract_company(link)
         title = clean_title(title)
-
         logo = logo_url(link)
 
         cards += f"""
-
         <tr>
         <td style="padding:20px 0">
 
@@ -154,21 +149,16 @@ def send_email(jobs):
 
         </td>
         </tr>
-
         """
 
     html = f"""
-
     <html>
-
     <body style="
     font-family:Arial,Helvetica,sans-serif;
     background:#f4f6f9;
     padding:40px">
 
     <table width="600" align="center" style="background:#f4f6f9">
-
-    <!-- HERO -->
 
     <tr>
     <td style="
@@ -182,19 +172,13 @@ def send_email(jobs):
     </h1>
 
     <p style="color:#666;margin-top:10px">
-
     Nye juridiske studenterjobs er fundet
-
     </p>
 
     </td>
     </tr>
 
-    <!-- JOB CARDS -->
-
     {cards}
-
-    <!-- FOOTER -->
 
     <tr>
     <td style="
@@ -213,7 +197,6 @@ def send_email(jobs):
 
     </body>
     </html>
-
     """
 
     msg.attach(MIMEText(html, "html"))
