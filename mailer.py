@@ -3,73 +3,78 @@ import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
-
-
-LOGO_MAP = {
-"bruunhjejle": "https://bruunhjejle.dk/media/1496/logo.svg",
-"kromannreumert": "https://kromannreumert.com/-/media/images/global/logo.svg",
-"bechbruun": "https://www.bechbruun.com/-/media/images/logo.svg",
-"poulschmith": "https://jobs.poulschmith.dk/-/media/poul-schmith-logo.svg",
-"accura": "https://accura.dk/wp-content/themes/accura/assets/logo.svg",
-"njord": "https://www.njordlaw.com/-/media/images/logo.svg",
-"schjodt": "https://schjodt.com/-/media/images/logo.svg"
-}
+from urllib.parse import urlparse
 
 
 def extract_company(link):
 
-    domain = link.split("/")[2].replace("www.","")
+    try:
 
-    return domain.split(".")[0].replace("-", " ").title()
+        domain = urlparse(link).netloc.lower()
+
+        domain = domain.replace("www.", "")
+
+        # fjern tracking / ats subdomains
+        parts = domain.split(".")
+
+        if len(parts) > 2:
+            domain = ".".join(parts[-2:])
+
+        company = domain.split(".")[0]
+
+        return company.replace("-", " ").title()
+
+    except:
+
+        return "Ukendt"
 
 
 def logo_url(link):
 
-    domain = link.split("/")[2].replace("www.","")
-    key = domain.split(".")[0]
+    try:
 
-    if key in LOGO_MAP:
-        return LOGO_MAP[key]
+        domain = urlparse(link).netloc.lower().replace("www.","")
 
-    return f"https://logo.clearbit.com/{domain}"
+        parts = domain.split(".")
+
+        if len(parts) > 2:
+            domain = ".".join(parts[-2:])
+
+        return f"https://logo.clearbit.com/{domain}"
+
+    except:
+
+        return ""
 
 
 def clean_title(title):
 
     title = title.strip()
 
-    remove = [
-        "are you a student",
-        "club",
-        "read more",
-        "click here",
-        "offers students",
-        "unique opportunities"
-    ]
-
     lower = title.lower()
 
-    for word in remove:
-        lower = lower.replace(word,"")
-
-    title = lower.strip().title()
-
+    # behold afdeling hvis nævnt
     departments = [
-        "M&A",
-        "Corporate",
-        "Competition",
-        "Banking",
-        "Dispute",
-        "Tax",
-        "IP",
-        "Employment"
+        "m&a",
+        "corporate",
+        "competition",
+        "banking",
+        "tax",
+        "employment",
+        "ip",
+        "litigation"
     ]
 
     for dept in departments:
-        if dept.lower() in title.lower():
-            return f"Stud.jur – {dept}"
 
-    if "stud" in title.lower():
+        if dept in lower:
+
+            return f"Stud.jur – {dept.upper()}"
+
+    if "studentermedhjælper" in lower:
+        return "Studentermedhjælper"
+
+    if "stud" in lower:
         return "Stud.jur"
 
     return title
@@ -158,7 +163,7 @@ def send_email(jobs):
     background:#f4f6f9;
     padding:40px">
 
-    <table width="600" align="center" style="background:#f4f6f9">
+    <table width="600" align="center">
 
     <tr>
     <td style="
@@ -167,11 +172,9 @@ def send_email(jobs):
     border-radius:10px;
     text-align:center">
 
-    <h1 style="margin:0">
-    ⚖️ Stud.jur Job Scanner
-    </h1>
+    <h1>⚖️ Stud.jur Job Scanner</h1>
 
-    <p style="color:#666;margin-top:10px">
+    <p style="color:#666">
     Nye juridiske studenterjobs er fundet
     </p>
 
